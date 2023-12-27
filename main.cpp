@@ -2,7 +2,6 @@
 #include <fstream>
 #include <yaml-cpp/yaml.h>
 #include <set>
-#include <functional>
 #include <vector>
 #include <string>
 #include <sys/wait.h>
@@ -13,6 +12,7 @@
 #include <stdlib.h>
 #include <ctype.h>
 
+// Функция для обработки задачи и её зависимостей
 void processJob(const std::string& job, const std::unordered_map<std::string, std::vector<std::string>>& dependencies,
                 std::unordered_set<std::string>& visitedJobs) {
     if (visitedJobs.size() == dependencies.size()) {
@@ -43,6 +43,7 @@ void processJob(const std::string& job, const std::unordered_map<std::string, st
     sleep(1);
 }
 
+// Функция для проверки наличия циклов в графе
 bool hasCycle(const YAML::Node& jobs, const std::string& currentJob, std::set<std::string>& visited,
               std::set<std::string>& recursionStack) {
     visited.insert(currentJob);
@@ -65,6 +66,7 @@ bool hasCycle(const YAML::Node& jobs, const std::string& currentJob, std::set<st
     return false;
 }
 
+// Функция для проверки, что граф является направленным ациклическим графом (DAG)
 bool isValidDAG(const YAML::Node& jobs) {
     std::set<std::string> visited;
     std::set<std::string> recursionStack;
@@ -79,6 +81,7 @@ bool isValidDAG(const YAML::Node& jobs) {
     return true;
 }
 
+// Функция для проверки, что граф имеет только одну компоненту связности
 bool hasOnlyOneComponent(const YAML::Node& jobs) {
     std::unordered_map<std::string, std::vector<std::string>> adjacencyList;
     std::set<std::string> visited;
@@ -125,6 +128,7 @@ bool hasOnlyOneComponent(const YAML::Node& jobs) {
     return componentCount > 1;
 }
 
+// Функция для проверки наличия стартовых и завершающих задач в графе
 bool hasStartAndEndJobs(const YAML::Node &jobs) {
     std::set<std::string> startJobs;
     std::set<std::string> endJobs;
@@ -146,27 +150,33 @@ bool hasStartAndEndJobs(const YAML::Node &jobs) {
     return !startJobs.empty() && !endJobs.empty();
 }
 
-int main(int argc, char const *argv[]) {
+int main(int argc, char* argv[]) {
+    // Получение имени файла из аргументов командной строки
     std::string fileName = argv[1];
     std::ifstream file(fileName);
     YAML::Node data = YAML::Load(file);
     YAML::Node jobs = data["jobs"];
 
+    // Проверка наличия циклов в графе
     if (!isValidDAG(jobs)) {
-        throw std::runtime_error("DAG contain cycle");
+        throw std::runtime_error("DAG contains a cycle");
     }
 
+    // Проверка, что граф имеет только одну компоненту связности
     if (hasOnlyOneComponent(jobs)) {
-        throw std::runtime_error("DAG has more then one connectivity component");
+        throw std::runtime_error("DAG has more than one connectivity component");
     }
 
+    // Проверка наличия стартовых и завершающих задач в графе
     if (!hasStartAndEndJobs(jobs)) {
         throw std::runtime_error("DAG does not have a start and end job");
     }
 
+    // Вывод сообщения о том, что граф является валидным DAG
     std::cout << "DAG is valid" << std::endl;
     sleep(1);
 
+    // Получение количества задач
     int n = jobs.size();
     std::vector<std::string> jobNames;
     for (const auto& job : jobs) {
@@ -176,6 +186,7 @@ int main(int argc, char const *argv[]) {
     std::unordered_map<std::string, std::vector<std::string>> dependencies_map;
     std::unordered_set<std::string> visitedJobs;
 
+    // Построение карты зависимостей
     for (const auto& job : jobs) {
         const std::string &jobName = job.first.as<std::string>();
         std::vector<std::string> dependencies;
@@ -185,6 +196,7 @@ int main(int argc, char const *argv[]) {
         dependencies_map[jobName] = dependencies;
     }
 
+    // Обработка задач с учетом зависимостей
     for (const std::string& job : jobNames) {
         processJob(job, dependencies_map, visitedJobs);
     }
