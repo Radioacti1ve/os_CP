@@ -1,0 +1,13 @@
+jobs:
+ job1:
+   dependencies: [job2]
+ job2:
+   dependencies: [job3]
+ job3:
+   dependencies: [job4]
+ job4:
+   dependencies: [job5]
+ job5:
+   dependencies: [job6]
+ job6:
+   dependencies: []
